@@ -12,12 +12,10 @@ Writes the text (UTF-8) to /output/entry.txt. No network, no input,
 no dependencies — Python standard library only.
 
 The text is validated before writing (1-280 Unicode characters,
-not whitespace-only) and written atomically via a temporary file
-plus os.replace, so a failed run can never leave a partial entry.
+not whitespace-only) and written directly to /output/entry.txt.
 """
 
 import os
-import tempfile
 from pathlib import Path
 
 TEXT = (
@@ -39,19 +37,8 @@ def main() -> None:
         raise SystemExit("entry text must not be whitespace-only")
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_name = tempfile.mkstemp(
-        dir=OUTPUT_PATH.parent, prefix=".entry-", suffix=".tmp"
-    )
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            fh.write(TEXT)
-        os.replace(tmp_name, OUTPUT_PATH)
-    except BaseException:
-        try:
-            os.unlink(tmp_name)
-        except FileNotFoundError:
-            pass
-        raise
+    OUTPUT_PATH.write_text(TEXT, encoding="utf-8")
+    os.chmod(OUTPUT_PATH, 0o644)
 
 
 if __name__ == "__main__":
